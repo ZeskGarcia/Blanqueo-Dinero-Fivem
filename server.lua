@@ -1,7 +1,12 @@
 ESX = nil
 
-TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+local rESX, rObj = pcall(function()
+    ESX = exports['es_extended']:getSharedObject()
+end)
 
+if (not rESX) then
+    TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+end
 
 local webhookURL = 'TU WEBHOOK DE DISCORD'
 
@@ -12,15 +17,13 @@ function sendToDiscord(message)
 end
 
 
-RegisterNetEvent('getBankMoney')
-AddEventHandler('getBankMoney', function()
+RegisterNetEvent(('%s:getBankMoney'):format(GetCurrentResourceName()), function()
     local xPlayer = ESX.GetPlayerFromId(source)
     local bankMoney = xPlayer.getAccount('bank').money
-    TriggerClientEvent('returnBankMoney', source, bankMoney)
+    TriggerClientEvent(('%s:returnBankMoney'):format(GetCurrentResourceName()), source, bankMoney)
 end)
 
-RegisterNetEvent('blanqueoDeDineroNegro')
-AddEventHandler('blanqueoDeDineroNegro', function(amount)
+RegisterNetEvent(('%s:blanqueoDeDineroNegro'):format(GetCurrentResourceName()), function(amount)
     local xPlayer = ESX.GetPlayerFromId(source)
     local blackMoney = xPlayer.getAccount('black_money').money
 
@@ -29,7 +32,7 @@ AddEventHandler('blanqueoDeDineroNegro', function(amount)
         xPlayer.addMoney(amount)
 
    
-        TriggerClientEvent('notifyBlanqueoSuccess', source, amount)
+        TriggerClientEvent(('%s:notifyBlanqueoSuccess'):format(GetCurrentResourceName()), source, amount)
 
       
         local playerName = GetPlayerName(source)
@@ -37,27 +40,19 @@ AddEventHandler('blanqueoDeDineroNegro', function(amount)
         sendToDiscord(message)
     else
       
-        TriggerClientEvent('notifyBlanqueoFailure', source)
+        TriggerClientEvent(('%s:notifyBlanqueoFailure'):format(GetCurrentResourceName()), source)
     end
 end)
 
-RegisterNetEvent('withdrawAllBankMoney')
-AddEventHandler('withdrawAllBankMoney', function()
+RegisterNetEvent(('%s:withdrawAllBankMoney'):format(GetCurrentResourceName()), function()
     local xPlayer = ESX.GetPlayerFromId(source)
     local bankMoney = xPlayer.getAccount('bank').money
     
     xPlayer.removeAccountMoney('bank', bankMoney)
     xPlayer.addMoney(bankMoney)
     
-    TriggerClientEvent('returnBankMoney', source, 0)
+    TriggerClientEvent(('%s:returnBankMoney'):format(GetCurrentResourceName()), source, 0)
 end)
-
-
--- Configuración
-Config = {}
-TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-Config = LoadResourceFile(GetCurrentResourceName(), 'config.lua')
-assert(load(Config))()
 
 
 function hasJob(playerId)
@@ -73,12 +68,11 @@ function hasJob(playerId)
 end
 
 
-RegisterServerEvent('requestOpenMenu')
-AddEventHandler('requestOpenMenu', function()
+RegisterServerEvent(('%s:requestOpenMenu'):format(GetCurrentResourceName()), function()
     local playerId = source
     if hasJob(playerId) then
-        TriggerClientEvent('openMenu', playerId)
+        TriggerClientEvent(('%s:openMenu'):format(GetCurrentResourceName()), playerId)
     else
-        TriggerClientEvent('showNotification', playerId, "No tienes el trabajo requerido, no se puede abrir el menú de blanqueo.")
+        TriggerClientEvent(('%s:showNotification'):format(GetCurrentResourceName()), playerId, "No tienes el trabajo requerido, no se puede abrir el menú de blanqueo.")
     end
 end)
