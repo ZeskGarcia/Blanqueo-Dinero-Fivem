@@ -1,33 +1,44 @@
 ESX = nil
 
-Citizen.CreateThread(function()
-    while ESX == nil do
-        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-        Citizen.Wait(0)
-    end
+local rESX, rObject = pcall(function()
+    ESX = exports['es_extended']:getSharedObject()
 end)
 
+if (not rESX and ESX == nil) then
+    CreateThread(function()
+        while (ESX == nil) do
+            TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+            Wait(250)
+        end
+    end)
+end
 
 local npcModel = Config.NPCModel
 local npcCoords = Config.NpcCoords 
 local npcRadius = Config.NpcRadius
 
 -- Crear el NPC
-Citizen.CreateThread(function()
-    RequestModel(npcModel)
-    while not HasModelLoaded(npcModel) do
-        Citizen.Wait(0)
+
+function createNPC(model, coords, heading)
+    RequestModel(model)
+    while (not HasModelLoaded(model)) do
+        Wait(250)
     end
-    local npc = CreatePed(4, npcModel, npcCoords.x, npcCoords.y, npcCoords.z, Config.NpcHeading, true, false)
+    local npc = CreatePed(4, model, coords.x, coords.y, coords.z, heading, true, false)
+    SetEntityAsMissionEntity(npc, true, true)
     SetEntityAsMissionEntity(npc, true, true)
     SetPedCanRagdoll(npc, false)
     SetPedDiesWhenInjured(npc, false)
     SetPedHearingRange(npc, 0.0)
     SetPedSeeingRange(npc, 0.0)
     SetPedAlertness(npc, 0.0)
-    SetEntityInvincible(npc, true) -- Godmode
+    SetEntityInvincible(npc, true)
     FreezeEntityPosition(npc, true)
     SetBlockingOfNonTemporaryEvents(npc, true)
+end
+
+Citizen.CreateThread(function()
+    createNPC(npcModel, npcCoords, Config.NpcHeading)
 end)
 
 
@@ -38,29 +49,29 @@ function isPlayerNearNPC()
     return distance <= npcRadius
 end
 
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(0)
+function ShowHelpNotification(text)
+    SetTextComponentFormat('STRING')
+    AddTextComponentString(text)
+    DisplayHelpTextFromStringLabel(0, 0, 1, -1)
+end
 
-        if isPlayerNearNPC() then
-            SetTextComponentFormat('STRING')
-            AddTextComponentString('Presiona ~INPUT_CONTEXT~ para blanquear dinero negro')
-            DisplayHelpTextFromStringLabel(0, 0, 1, -1)
+CreateThread(function()
+    local _sleep = true
+    while (true) do
+        Wait(_sleep and 750 or 0)
+        _sleep = not isPlayerNearNPC()
+        if ((not _sleep)) then
+            ShowHelpNotification('Presiona ~INPUT_CONTEXT~ para blanquear dinero negro')
 
-            if IsControlJustReleased(0, 38) then 
-                requestOpenMenu()
+            if (IsControlJustReleased(0, 38)) then 
+                -- TriggerServerEvent('requestOpenMenu')
+                TriggerServerEvent(("%s:requestOpenMenu"):format(GetCurrentResourceName()))
             end
         end
     end
 end)
 
-function requestOpenMenu()
-    TriggerServerEvent('requestOpenMenu')
-end
-
-
-RegisterNetEvent('openMenu')
-AddEventHandler('openMenu', function()
+RegisterNetEvent(("%s:openMenu"):format(GetCurrentResourceName()), function()
     local input = lib.inputDialog('Blanqueador de dinero', {'¿Cuánto dinero negro quieres blanquear?'})
 
     if input and tonumber(input[1]) then
@@ -76,8 +87,7 @@ AddEventHandler('openMenu', function()
 end)
 
 
-RegisterNetEvent('showNotification')
-AddEventHandler('showNotification', function(message)
+RegisterNetEvent(('%s:showNotification'):format(GetCurrentResourceName()) function(message)
     lib.notify({
         title = 'Notificación',
         description = message,
@@ -88,16 +98,14 @@ end)
 
 
 
-RegisterNetEvent('returnBankMoney')
-AddEventHandler('returnBankMoney', function(bankMoney)
+RegisterNetEvent(('%s:returnBankMoney'):format(GetCurrentResourceName()), function(bankMoney)
     print("El jugador tiene $" .. bankMoney .. " en su cuenta bancaria.")
     TriggerEvent('chat:addMessage', {
         args = {"[Servidor]", "Tienes $" .. bankMoney .. " en tu cuenta bancaria."}
     })
 end)
 
-RegisterNetEvent('sendCashAmount')
-AddEventHandler('sendCashAmount', function(cashAmount)
+RegisterNetEvent(('%s:sendCashAmount'):format(GetCurrentResourceName()), function(cashAmount)
     lib.notify({
         title = 'Dinero en efectivo',
         description = 'Tienes $' .. cashAmount .. ' en efectivo.',
@@ -105,8 +113,7 @@ AddEventHandler('sendCashAmount', function(cashAmount)
     })
 end)
 
-RegisterNetEvent('sendBlackMoneyAmount')
-AddEventHandler('sendBlackMoneyAmount', function(blackMoneyAmount)
+RegisterNetEvent(('%s:sendBlackMoneyAmount'):format(GetCurrentResourceName()), function(blackMoneyAmount)
     lib.notify({
         title = 'Dinero Negro',
         description = 'Tienes $' .. blackMoneyAmount .. ' en dinero negro.',
@@ -114,8 +121,7 @@ AddEventHandler('sendBlackMoneyAmount', function(blackMoneyAmount)
     })
 end)
 
-RegisterNetEvent('notifyBlanqueoSuccess')
-AddEventHandler('notifyBlanqueoSuccess', function(amount)
+RegisterNetEvent(('%s:notifyBlanqueoSuccess'):format(GetCurrentResourceName()), function(amount)
     lib.notify({
         title = 'Blanqueo Exitoso',
         description = 'Has blanqueado $' .. amount .. ' y lo has recibido en efectivo.',
@@ -123,15 +129,13 @@ AddEventHandler('notifyBlanqueoSuccess', function(amount)
     })
 end)
 
-RegisterNetEvent('notifyBlanqueoFailure')
-AddEventHandler('notifyBlanqueoFailure', function()
+RegisterNetEvent(('%s:notifyBlanqueoFailure'):format(GetCurrentResourceName()), function()
     lib.notify({
         title = 'Blanqueo Fallido',
         description = 'No tienes suficiente dinero negro para blanquear.',
         type = 'error'
     })
 end)
-RegisterNetEvent('traersteamalcliente')
-AddEventHandler('traersteamalcliente', function()
+RegisterNetEvent(('%s:traersteamalcliente'):format(GetCurrentResourceName()), function()
     TriggerServerEvent('enviarsteam')
 end)
